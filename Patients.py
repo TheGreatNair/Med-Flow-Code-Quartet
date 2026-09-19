@@ -1,0 +1,248 @@
+# Implementation :
+
+from dataclasses import dataclass, field
+from enum import IntEnum
+import heapq
+from typing import Optional
+
+
+class Urgency(IntEnum):
+    """
+    Smaller numeric values mean higher medical urgency.
+    """
+    CRITICAL = 1
+    URGENT = 2
+    NORMAL = 3
+    LOW = 4
+
+
+@dataclass
+class Patient:
+    patient_id: str
+    name: str
+    urgency: Urgency
+    arrival_time: int
+    required_resource: str
+    estimated_service_time: int
+    status: str = "waiting"
+
+    # Filled when the patient is assigned for treatment.
+    start_time: Optional[int] = None
+
+    @property
+    def waiting_time(self) -> int:
+        if self.start_time is None:
+            return 0
+        return self.start_time - self.arrival_time
+
+
+@dataclass(order=True)
+class QueueEntry:
+    """
+    heapq removes the entry with the smallest tuple value first.
+
+    effective_priority:
+        Lower value means higher priority.
+
+    arrival_order:
+        Preserves FIFO ordering when two patients have equal priority.
+    """
+    effective_priority: int
+    arrival_order: int
+    patient: Patient = field(compare=False)
+
+
+class PatientPriorityQueue:
+    def __init__(self, waiting_bonus_interval: int = 30):
+        self._queue = []
+        self._arrival_counter = 0
+        self.waiting_bonus_interval = waiting_bonus_interval
+
+    def _calculate_priority(self, patient: Patient, current_time: int) -> int:
+        """
+        Every waiting_bonus_interval minutes, a patient receives
+        one priority-level improvement.
+        """
+        waiting_time = max(0, current_time - patient.arrival_time)
+        waiting_bonus = waiting_time // self.waiting_bonus_interval
+
+        return max(1, patient.urgency.value - waiting_bonus)
+
+    def add_patient(self, patient: Patient) -> None:
+        """
+        Add a newly arrived patient to the queue.
+        """
+        priority = self._calculate_priority(
+            patient,
+            current_time=patient.arrival_time
+        )
+
+        entry = QueueEntry(
+            effective_priority=priority,
+            arrival_order=self._arrival_counter,
+            patient=patient
+        )
+
+        heapq.heappush(self._queue, entry)
+        self._arrival_counter += 1
+
+    def _refresh_priorities(self, current_time: int) -> None:
+        """
+        Rebuild the heap because waiting time can change the
+        effective priority of patients already in the queue.
+        """
+        refreshed_queue = []
+
+        for entry in self._queue:
+            new_priority = self._calculate_priority(
+                entry.patient,
+                current_time
+            )
+
+            refreshed_queue.append(
+                QueueEntry(
+                    effective_priority=new_priority,
+                    arrival_order=entry.arrival_order,
+                    patient=entry.patient
+                )
+            )
+
+        heapq.heapify(refreshed_queue)
+        self._queue = refreshed_queue
+
+    def next_patient(self, current_time: int) -> Optional[Patient]:
+        """
+        Remove and return the next patient who should be treated.
+        """
+        if not self._queue:
+            return None
+
+        self._refresh_priorities(current_time)
+
+        entry = heapq.heappop(self._queue)
+        patient = entry.patient
+
+        patient.start_time = current_time
+        patient.status = "in treatment"
+
+        return patient
+
+    def peek(self, current_time: int) -> Optional[Patient]:
+        """
+        View the next patient without removing them.
+        """
+        if not self._queue:
+            return None
+
+        self._refresh_priorities(current_time)
+        return self._queue[0].patient
+
+    def remove_patient(self, patient_id: str) -> bool:
+        """
+        Remove a patient, for example if the patient leaves or
+        is transferred to another hospital.
+        """
+        original_size = len(self._queue)
+
+        self._queue = [
+            entry for entry in self._queue
+            if entry.patient.patient_id != patient_id
+        ]
+
+        heapq.heapify(self._queue)
+
+        return len(self._queue) < original_size
+
+    def list_queue(self, current_time: int) -> list[Patient]:
+        """
+        Return the current queue in treatment order.
+        """
+        self._refresh_priorities(current_time)
+
+        ordered_entries = sorted(self._queue)
+
+        return [entry.patient for entry in ordered_entries]
+
+    def __len__(self) -> int:
+        return len(self._queue)
+
+# Example usage :
+
+def print_queue(patient_queue, current_time):
+    print(f"\nQueue at time {current_time} minutes")
+
+    for position, patient in enumerate(
+        patient_queue.list_queue(current_time),
+        start=1
+    ):
+        effective_priority = patient_queue._calculate_priority(
+            patient,
+            current_time
+        )
+
+        waiting_time = current_time - patient.arrival_time
+
+        print(
+            f"{position}. {patient.patient_id} | "
+            f"{patient.name} | "
+            f"urgency={patient.urgency.name} | "
+            f"effective_priority={effective_priority} | "
+            f"waiting={waiting_time} min | "
+            f"resource={patient.required_resource}"
+        )
+
+
+queue = PatientPriorityQueue(waiting_bonus_interval=30)
+
+queue.add_patient(
+    Patient(
+        patient_id="P001",
+        name="Aarav",
+        urgency=Urgency.NORMAL,
+        arrival_time=0,
+        required_resource="General Doctor",
+        estimated_service_time=20
+    )
+)
+
+queue.add_patient(
+    Patient(
+        patient_id="P002",
+        name="Meera",
+        urgency=Urgency.CRITICAL,
+        arrival_time=5,
+        required_resource="Emergency Doctor",
+        estimated_service_time=40
+    )
+)
+
+queue.add_patient(
+    Patient(
+        patient_id="P003",
+        name="Rohan",
+        urgency=Urgency.URGENT,
+        arrival_time=10,
+        required_resource="General Doctor",
+        estimated_service_time=30
+    )
+)
+
+queue.add_patient(
+    Patient(
+        patient_id="P004",
+        name="Ishita",
+        urgency=Urgency.LOW,
+        arrival_time=0,
+        required_resource="General Doctor",
+        estimated_service_time=15
+    )
+)
+
+print_queue(queue, current_time=10)
+
+next_patient = queue.next_patient(current_time=10)
+
+print("\nSelected patient:")
+print(next_patient.patient_id, next_patient.name)
+
+print_queue(queue, current_time=60)
