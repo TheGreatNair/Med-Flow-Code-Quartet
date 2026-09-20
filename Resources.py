@@ -59,7 +59,6 @@ class ResourceManager:
         # --------------------------------------------------------
 
         self.total = {
-            "ventilator": ventilators,
             "operating_room": operating_rooms,
             "ambulance": ambulances
         }
