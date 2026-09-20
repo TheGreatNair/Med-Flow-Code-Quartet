@@ -111,21 +111,22 @@ class ResourceManager:
     # ============================================================
 
     def choose_department(self, patient):
+        
+        # 1. If the triage nurse manually selected a department on the website, use it!
+        if hasattr(patient, "department"):
+            return patient.department
 
+        # 2. Original fallback logic just in case
         resource = patient.required_resource
 
         if resource == "icu_bed":
             return "Cardiology"
-
         elif resource == "operating_room":
             return "General Surgery"
-
         elif resource == "bed":
             return "General Surgery"
-
         elif resource == "doctor":
             return "Cardiology"
-
         elif resource == "nurse":
             return "Pediatrics"
 
