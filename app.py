@@ -109,11 +109,12 @@ if waiting_patients:
     queue_data = [
         {
             "Patient ID": p.patient_id,
-                "Name": p.name,
-                "Urgency": p.urgency.name,
-                "Resource Needed": p.required_resource,
-                "Department": getattr(p, "department", "Unassigned")
-        } 
+            "Name": p.name,
+            "Urgency": p.urgency.name,
+            "Resource Needed": p.required_resource,
+            "Department": getattr(p, "department", "Unassigned"),
+            "Wait Time": f"{(current_time - p.arrival_time) // 60}m {(current_time - p.arrival_time) % 60}s"
+        }
         for p in waiting_patients
     ]
     st.dataframe(queue_data, use_container_width=True)
