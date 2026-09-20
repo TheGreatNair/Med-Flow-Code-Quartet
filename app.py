@@ -14,6 +14,13 @@ if 'queue' not in st.session_state:
     st.session_state.queue = PatientPriorityQueue()
 if 'hospital' not in st.session_state:
     st.session_state.hospital = SurgeryEquipmentHandler()
+    # Force the starting inventory so it doesn't default to 0
+    st.session_state.hospital.available_equipment = {
+        "ICU Bed": 10,
+        "Normal Bed": 42,
+        "Doctor": 12,
+        "Ventilator": 5
+    }
 
 st.markdown("<h1 style='text-align: center; color: #005b96;'>🏥 MEDFLOW: Central Triage Dashboard</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: gray;'>Live Resource & Patient Management System</p>", unsafe_allow_html=True)
