@@ -6,21 +6,14 @@ st.set_page_config(
 )
 import time
 from Patients import PatientPriorityQueue, Patient, Urgency
-from Resources import SurgeryEquipmentHandler
+from Resources import HospitalSystem
 
 # --- INITIALIZE BACKEND LOGIC ---
 # This keeps the data from resetting every time you click a button
 if 'queue' not in st.session_state:
     st.session_state.queue = PatientPriorityQueue()
 if 'hospital' not in st.session_state:
-    st.session_state.hospital = SurgeryEquipmentHandler()
-    # Force the starting inventory so it doesn't default to 0
-    st.session_state.hospital.available_equipment = {
-        "ICU Bed": 10,
-        "Normal Bed": 42,
-        "Doctor": 12,
-        "Ventilator": 5
-    }
+    st.session_state.hospital = HospitalSystem()
 
 st.markdown("<h1 style='text-align: center; color: #005b96;'>🏥 MEDFLOW: Central Triage Dashboard</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: gray;'>Live Resource & Patient Management System</p>", unsafe_allow_html=True)
@@ -34,32 +27,45 @@ urgency_level = st.sidebar.selectbox("Urgency Level", ["CRITICAL", "URGENT", "NO
 resource_needed = st.sidebar.selectbox("Resource Needed", ["ICU Bed", "Normal Bed", "Doctor", "Ventilator"])
 
 if st.sidebar.button("Add to Queue"):
-    # Convert text to the Urgency Enum your teammate made
-    urgency_enum = getattr(Urgency, urgency_level)
-    
-    # Create the new patient
-    new_patient = Patient(
-        patient_id=new_patient_id,
-        name=new_name,
-        urgency=urgency_enum,
-        arrival_time=int(time.time()),
-        required_resource=resource_needed,
-        estimated_service_time=30
-    )
-    
-    # Add to the backend queue
-    st.session_state.queue.add_patient(new_patient)
-    st.sidebar.success(f"{new_name} added to the waiting room!")
+        # Map UI dropdown to his backend code names
+        resource_map = {
+            "ICU Bed": "icu_bed", 
+            "Normal Bed": "bed", 
+            "Doctor": "doctor", 
+            "Ventilator": "ventilator"
+        }
+        backend_resource = resource_map[resource_needed]
+
+        # Convert text to the Urgency Enum your teammate made
+        urgency_enum = getattr(Urgency, urgency_level)
+
+        # Create the new patient
+        new_patient = Patient(
+            patient_id=new_patient_id,
+            name=new_name,
+            urgency=urgency_enum,
+            arrival_time=int(time.time()),
+            required_resource=backend_resource,
+            estimated_service_time=30
+        )
+
+        # Add to the backend queue
+        st.session_state.queue.add_patient(new_patient)
+        st.sidebar.success(f"{new_name} added to the waiting room!")
 
 # --- MAIN DASHBOARD: LIVE METRICS ---
-# Pull live equipment counts from your teammate's inventory tracker
-eq_manager = st.session_state.hospital.equipment_manager
+# Sum up all the resources across his 5 departments
+hospital_sys = st.session_state.hospital
+depts = hospital_sys.resource_manager.departments
+
+available_icu = sum(dept["icu_bed"] for dept in depts.values())
+available_normal = sum(dept["bed"] for dept in depts.values())
+available_doctors = sum(dept["doctor"] for dept in depts.values())
 
 col1, col2, col3 = st.columns(3)
-col1.metric("Available ICU Beds", eq_manager.available_equipment.get("ICU Bed", 0))
-col2.metric("Available Normal Beds", eq_manager.available_equipment.get("Normal Bed", 0))
-col3.metric("Available Doctors", eq_manager.available_equipment.get("Doctor", 0))
-
+col1.metric("Available ICU Beds", available_icu)
+col2.metric("Available Normal Beds", available_normal)
+col3.metric("Available Doctors", available_doctors)
 st.divider()
 
 # --- MAIN DASHBOARD: LIVE QUEUE ---
@@ -94,24 +100,14 @@ if st.button("Treat Next Priority Patient", type="primary"):
     if len(waiting_patients) == 0:
         st.info("No patients are currently waiting.")
     else:
-        # The queue is already sorted by priority, so index 0 is our most urgent patient
         top_patient = waiting_patients[0]
-        resource_needed = top_patient.required_resource
         
-        # Check if the required resource is currently in stock
-        if eq_manager.available_equipment.get(resource_needed, 0) > 0:
-            # 1. Deduct the resource from the live inventory
-            eq_manager.available_equipment[resource_needed] -= 1
-            
-            # 2. Remove the patient from the backend queue
-            # (Note: If your teammate named the removal method something other than 'remove_patient', 
-            # you may need to update the method name in the line below)
+        # This triggers your teammate's massive allocation logic!
+        success = st.session_state.hospital.allocate_resource(top_patient)
+        
+        if success:
             st.session_state.queue.remove_patient(top_patient.patient_id)
-            
-            st.success(f"Success! {top_patient.name} is now receiving treatment. 1 {resource_needed} has been occupied.")
-            
-            # Force the Streamlit page to instantly refresh so the metrics and table update
+            st.success(f"Success! {top_patient.name} has been allocated their resource and is in treatment.")
             st.rerun()
         else:
-            # If the hospital is out of beds/doctors, trigger an alert
-            st.error(f"Cannot treat {top_patient.name}! The hospital is completely out of {resource_needed}s.")
+            st.error(f"Cannot treat {top_patient.name}! Resource is unavailable in our hospital.")
