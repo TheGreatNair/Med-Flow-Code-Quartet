@@ -164,3 +164,24 @@ if st.button("Run Simulation Now"):
         s_col2.metric("Avg Wait Time (mins)", results["average_wait_minutes"])
         s_col3.metric("Surge Arrivals", results["surge_arrivals"])
         s_col4.metric("Resource Failures", results["resource_failure_events"])
+        
+        # --- AMBULANCE FORECAST ---
+st.divider()
+st.subheader("🚑 24-Hour Ambulance Forecast")
+st.write("Predictive model showing expected vs. simulated ambulance arrivals by hour.")
+
+# Import your teammate's new model
+from Ambulance_arrival import AmbulanceArrivalModel
+
+# Generate the data
+amb_model = AmbulanceArrivalModel()
+sim_data = amb_model.simulate_day()
+
+# Package it into a format Streamlit can chart
+chart_data = {
+    "Expected Arrivals": [amb_model.get_expected_arrivals(h) for h in range(24)],
+    "Simulated Arrivals": [sim_data[h] for h in range(24)]
+}
+
+# Display a beautiful line chart
+st.line_chart(chart_data)
