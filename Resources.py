@@ -15,6 +15,8 @@ class ResourceManager:
         # --------------------------------------------------------
         # DEPARTMENT RESOURCES
         # --------------------------------------------------------
+        # Nurses are not displayed here.
+        # Ventilators are now department resources.
 
         self.departments = {
 
@@ -22,44 +24,45 @@ class ResourceManager:
                 "bed": beds // 5,
                 "icu_bed": icu_beds // 5,
                 "doctor": doctors // 5,
-                "nurse": nurses // 5
+                "ventilator": ventilators // 5
             },
 
             "Neurology": {
                 "bed": beds // 5,
                 "icu_bed": icu_beds // 5,
                 "doctor": doctors // 5,
-                "nurse": nurses // 5
+                "ventilator": ventilators // 5
             },
 
             "Orthopedics": {
                 "bed": beds // 5,
                 "icu_bed": icu_beds // 5,
                 "doctor": doctors // 5,
-                "nurse": nurses // 5
+                "ventilator": ventilators // 5
             },
 
             "General Surgery": {
                 "bed": beds // 5,
                 "icu_bed": icu_beds // 5,
                 "doctor": doctors // 5,
-                "nurse": nurses // 5
+                "ventilator": ventilators // 5
             },
 
             "Pediatrics": {
                 "bed": beds - (4 * (beds // 5)),
                 "icu_bed": icu_beds - (4 * (icu_beds // 5)),
                 "doctor": doctors - (4 * (doctors // 5)),
-                "nurse": nurses - (4 * (nurses // 5))
+                "ventilator": ventilators - (4 * (ventilators // 5))
             }
         }
 
         # --------------------------------------------------------
         # HOSPITAL-WIDE RESOURCES
         # --------------------------------------------------------
+        # Ventilator is NOT kept here because it is now
+        # distributed among departments.
 
         self.total = {
-            "ventilator": ventilators,
             "operating_room": operating_rooms,
             "ambulance": ambulances
         }
@@ -107,28 +110,71 @@ class ResourceManager:
 
 
     # ============================================================
+    # GET TOTAL RESOURCE COUNTS
+    # ============================================================
+
+    def get_available_beds(self):
+
+        total = 0
+
+        for department in self.departments:
+            total += self.departments[department]["bed"]
+
+        return total
+
+
+    def get_available_icu_beds(self):
+
+        total = 0
+
+        for department in self.departments:
+            total += self.departments[department]["icu_bed"]
+
+        return total
+
+
+    def get_available_doctors(self):
+
+        total = 0
+
+        for department in self.departments:
+            total += self.departments[department]["doctor"]
+
+        return total
+
+
+    def get_available_ventilators(self):
+
+        total = 0
+
+        for department in self.departments:
+            total += self.departments[department]["ventilator"]
+
+        return total
+
+
+    # ============================================================
     # CHOOSE DEPARTMENT
     # ============================================================
 
     def choose_department(self, patient):
-        
-        # 1. If the triage nurse manually selected a department on the website, use it!
-        if hasattr(patient, "department"):
-            return patient.department
 
-        # 2. Original fallback logic just in case
         resource = patient.required_resource
 
         if resource == "icu_bed":
             return "Cardiology"
+
         elif resource == "operating_room":
             return "General Surgery"
+
         elif resource == "bed":
             return "General Surgery"
+
         elif resource == "doctor":
             return "Cardiology"
-        elif resource == "nurse":
-            return "Pediatrics"
+
+        elif resource == "ventilator":
+            return "Cardiology"
 
         return None
 
@@ -475,17 +521,73 @@ class ResourceManager:
 
         print("\n========== HOSPITAL RESOURCES ==========")
 
+        # --------------------------------------------------------
+        # TOP HOSPITAL-WIDE AVAILABILITY SUMMARY
+        # --------------------------------------------------------
+
+        print("\n========== AVAILABLE RESOURCES ==========")
+
+        print(
+            "Available ICU Beds:",
+            self.get_available_icu_beds()
+        )
+
+        print(
+            "Available Normal Beds:",
+            self.get_available_beds()
+        )
+
+        print(
+            "Available Doctors:",
+            self.get_available_doctors()
+        )
+
+        print(
+            "Available Ventilators:",
+            self.get_available_ventilators()
+        )
+
+        print(
+            "Available Operating Rooms:",
+            self.available["operating_room"]
+        )
+
+        print(
+            "Available Ambulances:",
+            self.available["ambulance"]
+        )
+
+        # --------------------------------------------------------
+        # DEPARTMENT RESOURCES
+        # --------------------------------------------------------
+
         for department in self.departments:
 
             print("\n---", department, "---")
 
-            for resource in self.departments[department]:
+            print(
+                "Bed:",
+                self.departments[department]["bed"]
+            )
 
-                print(
-                    resource.replace("_", " ").title(),
-                    ":",
-                    self.departments[department][resource]
-                )
+            print(
+                "ICU Bed:",
+                self.departments[department]["icu_bed"]
+            )
+
+            print(
+                "Doctor:",
+                self.departments[department]["doctor"]
+            )
+
+            print(
+                "Ventilator:",
+                self.departments[department]["ventilator"]
+            )
+
+        # --------------------------------------------------------
+        # HOSPITAL-WIDE RESOURCES
+        # --------------------------------------------------------
 
         print("\n--- Hospital-Wide Resources ---")
 
@@ -511,6 +613,43 @@ class ResourceManager:
 
         print("\n====== RESOURCE UTILIZATION ======")
 
+        # Department resources
+        resources = [
+            "bed",
+            "icu_bed",
+            "doctor",
+            "ventilator"
+        ]
+
+        for resource in resources:
+
+            total = 0
+            available = 0
+
+            for department in self.departments:
+
+                total += self.get_department_total(
+                    department,
+                    resource
+                )
+
+                available += self.departments[department][resource]
+
+            used = total - available
+
+            if total > 0:
+                percentage = (used / total) * 100
+            else:
+                percentage = 0
+
+            print(
+                resource.replace("_", " ").title(),
+                ":",
+                round(percentage, 2),
+                "%"
+            )
+
+        # Hospital-wide resources
         for resource in self.total:
 
             total = self.total[resource]
@@ -528,6 +667,29 @@ class ResourceManager:
                 round(percentage, 2),
                 "%"
             )
+
+
+    # ============================================================
+    # GET ORIGINAL DEPARTMENT TOTAL
+    # ============================================================
+
+    def get_department_total(self, department, resource):
+
+        total = 0
+
+        for current_department in self.departments:
+
+            total += self.departments[current_department][resource]
+
+        # Add resources currently assigned to patients
+        for patient_id in self.patient_resources:
+
+            if self.patient_departments[patient_id] == department:
+
+                if self.patient_resources[patient_id] == resource:
+                    total += 1
+
+        return total
 
 
 # ============================================================
@@ -587,7 +749,6 @@ class SurgicalEquipmentManager:
         equipment = patient.required_resource
 
         self.available_equipment[equipment] -= 1
-
         self.patient_equipment[patient_id] = equipment
 
         return True
@@ -861,7 +1022,6 @@ class HospitalNetwork:
 
             return None
 
-
         # Record the request
         request = {
             "organ": organ,
@@ -885,7 +1045,7 @@ class HospitalNetwork:
 
         # IMPORTANT:
         # Hospital inventory is NOT decreased here.
-        # It will only decrease when the request is fulfilled.
+        # It only decreases when the request is fulfilled.
 
         return hospital
 
@@ -983,7 +1143,6 @@ class SurgeryEquipmentHandler:
             patient.required_resource
         )
 
-
         # Try local equipment
         if self.equipment_manager.allocate_equipment(patient):
 
@@ -997,7 +1156,6 @@ class SurgeryEquipmentHandler:
 
             return True
 
-
         # Equipment unavailable
         print(
             "Equipment unavailable in our hospital."
@@ -1007,11 +1165,9 @@ class SurgeryEquipmentHandler:
             "Checking nearby hospitals..."
         )
 
-
         hospital = self.hospital_network.request_equipment(
             patient
         )
-
 
         if hospital is not None:
 
