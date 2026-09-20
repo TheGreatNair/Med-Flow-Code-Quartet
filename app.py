@@ -64,11 +64,7 @@ available_icu = sum(dept["icu_bed"] for dept in depts.values())
 available_normal = sum(dept["bed"] for dept in depts.values())
 available_doctors = sum(dept["doctor"] for dept in depts.values())
 
-# Safely grab ventilators from the equipment manager (or departments as a fallback)
-if hasattr(hospital_sys, "surgery_manager"):
-    available_ventilators = hospital_sys.surgery_manager.available_equipment.get("ventilator", 0)
-else:
-    available_ventilators = sum(dept.get("ventilator", 0) for dept in depts.values())
+available_ventilators = sum(dept["ventilator"] for dept in depts.values())
 
 # Change to 4 columns to fit the new metric
 col1, col2, col3, col4 = st.columns(4)
