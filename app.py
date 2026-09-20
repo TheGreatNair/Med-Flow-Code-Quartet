@@ -15,7 +15,9 @@ if 'queue' not in st.session_state:
 if 'hospital' not in st.session_state:
     st.session_state.hospital = SurgeryEquipmentHandler()
 
-st.title("MEDFLOW: Hospital Operations Dashboard")
+st.markdown("<h1 style='text-align: center; color: #005b96;'>🏥 MEDFLOW: Central Triage Dashboard</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray;'>Live Resource & Patient Management System</p>", unsafe_allow_html=True)
+st.divider()
 
 # --- SIDEBAR: ADMIT NEW PATIENT ---
 st.sidebar.header("Admit New Patient")
