@@ -1,8 +1,9 @@
 import streamlit as st
 st.set_page_config(
-    page_title="MEDFLOW Hospital Triage",
+    page_title="MedFlow Triage Dashboard",
     page_icon="🏥",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 import time
 from Patients import PatientPriorityQueue, Patient, Urgency
