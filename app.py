@@ -141,3 +141,24 @@ if st.button("Treat Next Priority Patient", type="primary"):
             st.rerun()
         else:
             st.error(f"Cannot treat {top_patient.name}! Resource is unavailable in our hospital.")
+            # --- SIMULATION DASHBOARD ---
+st.divider()
+st.subheader("🚨 24-Hour Emergency Stress Test")
+st.write("Run a full-day simulation with random traffic surges and unexpected resource failures.")
+
+if st.button("Run Simulation Now"):
+    # Import the fixed simulation file
+    from Simulation import HospitalSimulation 
+    
+    with st.spinner("Simulating 24 hours of hospital traffic..."):
+        sim = HospitalSimulation(simulation_minutes=24 * 60, seed=7)
+        results = sim.run()
+        
+        st.success("Simulation Complete!")
+        
+        # Display the results in 4 beautiful columns
+        s_col1, s_col2, s_col3, s_col4 = st.columns(4)
+        s_col1.metric("Total Patients Processed", results["total_patients"])
+        s_col2.metric("Avg Wait Time (mins)", results["average_wait_minutes"])
+        s_col3.metric("Surge Arrivals", results["surge_arrivals"])
+        s_col4.metric("Resource Failures", results["resource_failure_events"])
