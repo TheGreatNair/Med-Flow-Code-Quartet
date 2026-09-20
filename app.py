@@ -25,6 +25,7 @@ new_patient_id = st.sidebar.text_input("Patient ID (e.g., P-004)")
 new_name = st.sidebar.text_input("Patient Name")
 urgency_level = st.sidebar.selectbox("Urgency Level", ["CRITICAL", "URGENT", "NORMAL", "LOW"])
 resource_needed = st.sidebar.selectbox("Resource Needed", ["ICU Bed", "Normal Bed", "Doctor", "Ventilator"])
+department_choice = st.sidebar.selectbox("Department", ["Cardiology", "Neurology", "Orthopedics", "General Surgery", "Pediatrics"])
 
 if st.sidebar.button("Add to Queue"):
         # Map UI dropdown to his backend code names
@@ -48,7 +49,8 @@ if st.sidebar.button("Add to Queue"):
             required_resource=backend_resource,
             estimated_service_time=30
         )
-
+# Attach the user's chosen department dynamically!
+        new_patient.department = department_choice
         # Add to the backend queue
         st.session_state.queue.add_patient(new_patient)
         st.sidebar.success(f"{new_name} added to the waiting room!")
