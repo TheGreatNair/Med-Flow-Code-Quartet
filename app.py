@@ -68,3 +68,36 @@ if waiting_patients:
     st.dataframe(queue_data, use_container_width=True)
 else:
     st.info("The waiting room is currently empty.")
+    # --- MAIN DASHBOARD: HOSPITAL ACTIONS ---
+st.divider()
+st.subheader("Hospital Actions")
+
+# We use type="primary" to make this button stand out visually
+if st.button("Treat Next Priority Patient", type="primary"):
+    current_time = int(time.time())
+    waiting_patients = st.session_state.queue.list_queue(current_time)
+    
+    if len(waiting_patients) == 0:
+        st.info("No patients are currently waiting.")
+    else:
+        # The queue is already sorted by priority, so index 0 is our most urgent patient
+        top_patient = waiting_patients[0]
+        resource_needed = top_patient.required_resource
+        
+        # Check if the required resource is currently in stock
+        if eq_manager.available_equipment.get(resource_needed, 0) > 0:
+            # 1. Deduct the resource from the live inventory
+            eq_manager.available_equipment[resource_needed] -= 1
+            
+            # 2. Remove the patient from the backend queue
+            # (Note: If your teammate named the removal method something other than 'remove_patient', 
+            # you may need to update the method name in the line below)
+            st.session_state.queue.remove_patient(top_patient.patient_id)
+            
+            st.success(f"Success! {top_patient.name} is now receiving treatment. 1 {resource_needed} has been occupied.")
+            
+            # Force the Streamlit page to instantly refresh so the metrics and table update
+            st.rerun()
+        else:
+            # If the hospital is out of beds/doctors, trigger an alert
+            st.error(f"Cannot treat {top_patient.name}! The hospital is completely out of {resource_needed}s.")
