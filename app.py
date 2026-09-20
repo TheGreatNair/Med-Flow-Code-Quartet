@@ -103,6 +103,7 @@ st.subheader("Live Patient Queue")
 
 current_time = int(time.time())
 waiting_patients = st.session_state.queue.list_queue(current_time)
+waiting_patients = sorted(waiting_patients, key=lambda p: (p.urgency.value, p.arrival_time))
 
 if waiting_patients:
     # Convert the complex patient data into a simple table for Streamlit
@@ -164,7 +165,7 @@ if st.button("Run Simulation Now"):
         s_col2.metric("Avg Wait Time (mins)", results["average_wait_minutes"])
         s_col3.metric("Surge Arrivals", results["surge_arrivals"])
         s_col4.metric("Resource Failures", results["resource_failure_events"])
-        
+
         # --- AMBULANCE FORECAST ---
 st.divider()
 st.subheader("🚑 24-Hour Ambulance Forecast")
