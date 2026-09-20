@@ -68,6 +68,30 @@ col2.metric("Available Normal Beds", available_normal)
 col3.metric("Available Doctors", available_doctors)
 st.divider()
 
+# --- DETAILED INVENTORY TABS ---
+st.subheader("Comprehensive Hospital Inventory")
+
+# Create interactive tabs for a clean UI
+tab1, tab2, tab3 = st.tabs(["🏥 Departments", "🩸 Blood & Organs", "⚕️ Equipment"])
+
+with tab1:
+    st.write("Live bed and staff counts by department:")
+    st.dataframe(st.session_state.hospital.resource_manager.departments, use_container_width=True)
+    
+with tab2:
+    col_b, col_o = st.columns(2)
+    with col_b:
+        st.write("Blood Bank (Units):")
+        st.dataframe(st.session_state.hospital.resource_manager.blood_bank, use_container_width=True)
+    with col_o:
+        st.write("Organ Bank (Availability):")
+        st.dataframe(st.session_state.hospital.resource_manager.organ_bank, use_container_width=True)
+        
+with tab3:
+    st.write("Available Surgical Equipment:")
+    st.dataframe(st.session_state.hospital.surgery_manager.available_equipment, use_container_width=True)
+    
+st.divider()
 # --- MAIN DASHBOARD: LIVE QUEUE ---
 st.subheader("Live Patient Queue")
 
