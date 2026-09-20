@@ -1054,7 +1054,7 @@ class HospitalSystem:
             icu_beds=10,
             doctors=20,
             nurses=40,
-            ventilators=4,
+            ventilators=40,
             operating_rooms=3,
             ambulances=5
         )
