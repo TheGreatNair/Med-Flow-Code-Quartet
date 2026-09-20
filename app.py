@@ -108,10 +108,11 @@ if waiting_patients:
     # Convert the complex patient data into a simple table for Streamlit
     queue_data = [
         {
-            "Patient ID": p.patient_id, 
-            "Name": p.name, 
-            "Urgency": p.urgency.name, 
-            "Resource Needed": p.required_resource
+            "Patient ID": p.patient_id,
+                "Name": p.name,
+                "Urgency": p.urgency.name,
+                "Resource Needed": p.required_resource,
+                "Department": getattr(p, "department", "Unassigned")
         } 
         for p in waiting_patients
     ]
