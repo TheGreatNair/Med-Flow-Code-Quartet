@@ -143,8 +143,3 @@ class AmbulanceArrivalModel:
 # TEST THE MODEL
 # ============================================================
 
-model = AmbulanceArrivalModel()
-
-model.show_pattern()
-
-model.show_simulated_day()
